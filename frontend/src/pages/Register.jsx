@@ -12,35 +12,19 @@ export default function Register() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    if (password.length < 8) {
-      toast.error("Password must be at least 8 characters");
-      return;
-    }
+    if (password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     setLoading(true);
-
     const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
+      email, password,
       options: { data: { full_name: name } },
     });
-
     setLoading(false);
-
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-
-    // If email confirmation is ON in Supabase → session will be null
-    // If email confirmation is OFF → session is set immediately
+    if (error) { toast.error(error.message); return; }
     if (data.session) {
       toast.success("Account created! Welcome to Legal Bro.");
-      navigate("/draft");
+      navigate("/profile");   // take them to set up company profile first
     } else {
-      toast.success(
-        "Check your email to confirm your account, then sign in.",
-        { duration: 6000 }
-      );
+      toast.success("Check your email to confirm your account, then sign in.", { duration: 6000 });
       navigate("/login");
     }
   };
@@ -48,94 +32,73 @@ export default function Register() {
   const handleGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/draft` },
+      options:  { redirectTo: `${window.location.origin}/profile` },
     });
     if (error) toast.error(error.message);
   };
 
   return (
-    <div className="min-h-screen bg-[#080B14] pt-[60px] flex items-center justify-center px-4">
-      <div className="bg-[#161D2E] border border-[#2A3450] rounded-2xl p-8 w-full max-w-md">
-        <h2 className="font-serif text-2xl text-stone-100 mb-1">Create account</h2>
-        <p className="text-sm text-stone-400 mb-6">
-          Start drafting legal documents with AI today
-        </p>
+    <div className="min-h-screen bg-ms-bg pt-12 flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        <div className="bg-white border border-ms-border rounded-lg shadow-ms overflow-hidden">
+          <div className="bg-ms-blue px-6 py-5">
+            <div className="text-white font-semibold text-lg">⚖ Legal Bro</div>
+            <div className="text-white/70 text-sm mt-0.5">Create your account</div>
+          </div>
 
-        {/* ── Supabase tip ── */}
-        <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg px-4 py-3 mb-5 text-xs text-amber-400 leading-relaxed">
-          <strong>Tip:</strong> To skip email confirmation during development, go to{" "}
-          <span className="font-mono">Supabase → Authentication → Providers → Email</span>{" "}
-          and turn off <em>Confirm email</em>.
+          <div className="p-6">
+            {/* Tip */}
+            <div className="bg-ms-blueLight border border-ms-blueMid rounded px-3 py-2.5 mb-4 text-xs text-ms-blue leading-relaxed">
+              <strong>Tip:</strong> To skip email confirmation in dev, go to{" "}
+              <span className="font-mono bg-white px-1 rounded">Supabase → Auth → Email → disable Confirm email</span>
+            </div>
+
+            <button
+              onClick={handleGoogle}
+              className="w-full flex items-center justify-center gap-2 border border-ms-border rounded px-4 py-2.5 text-sm text-ms-neutral hover:bg-ms-hover hover:border-ms-blue transition-colors mb-4"
+            >
+              <GoogleIcon /> Sign up with Google
+            </button>
+
+            <div className="flex items-center gap-3 mb-4 text-xs text-ms-neutralLight">
+              <div className="flex-1 h-px bg-ms-border" />or<div className="flex-1 h-px bg-ms-border" />
+            </div>
+
+            <form onSubmit={handleRegister} className="space-y-4">
+              {[
+                { label:"Full Name", type:"text",     value:name,     set:setName,     ph:"John Doe" },
+                { label:"Email",     type:"email",    value:email,    set:setEmail,    ph:"you@example.com" },
+                { label:"Password",  type:"password", value:password, set:setPassword, ph:"Min 8 characters" },
+              ].map(f => (
+                <div key={f.label}>
+                  <label className="block text-xs font-semibold text-ms-neutralMid mb-1.5 uppercase tracking-wider">{f.label}</label>
+                  <input
+                    type={f.type} value={f.value} onChange={e => f.set(e.target.value)}
+                    placeholder={f.ph} required
+                    className="w-full border border-ms-border rounded px-3 py-2.5 text-sm text-ms-neutral placeholder-ms-neutralLight focus:outline-none focus:border-ms-blue focus:ring-1 focus:ring-ms-blue transition"
+                  />
+                </div>
+              ))}
+              <button
+                type="submit" disabled={loading}
+                className="w-full bg-ms-blue text-white font-semibold py-2.5 rounded text-sm hover:bg-ms-blueDark transition-colors disabled:opacity-50"
+              >
+                {loading ? "Creating account..." : "Create Account"}
+              </button>
+            </form>
+          </div>
+
+          <div className="px-6 py-3 bg-ms-bg border-t border-ms-border text-center">
+            <span className="text-xs text-ms-neutralMid">Already have an account? </span>
+            <Link to="/login" className="text-xs text-ms-blue hover:underline font-medium">Sign in</Link>
+          </div>
         </div>
 
-        <button
-          onClick={handleGoogle}
-          className="w-full flex items-center justify-center gap-2 border border-[#3A4560] text-stone-300 text-sm py-2.5 rounded hover:border-amber-600 hover:text-amber-300 transition-colors mb-4"
-        >
-          <GoogleIcon /> Sign up with Google
-        </button>
-
-        <div className="flex items-center gap-3 mb-4 text-[11px] text-stone-600">
-          <div className="flex-1 h-px bg-[#2A3450]" />or<div className="flex-1 h-px bg-[#2A3450]" />
-        </div>
-
-        <form onSubmit={handleRegister} className="space-y-4">
-          <div>
-            <label className="block text-[10px] text-stone-400 uppercase tracking-wider font-medium mb-1.5">
-              Full Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="John Doe"
-              required
-              className="w-full bg-[#080B14] border border-[#2A3450] rounded px-3 py-2.5 text-sm text-stone-200 placeholder-stone-600 focus:border-amber-500 outline-none transition-colors"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] text-stone-400 uppercase tracking-wider font-medium mb-1.5">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-              className="w-full bg-[#080B14] border border-[#2A3450] rounded px-3 py-2.5 text-sm text-stone-200 placeholder-stone-600 focus:border-amber-500 outline-none transition-colors"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] text-stone-400 uppercase tracking-wider font-medium mb-1.5">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Min 8 characters"
-              required
-              className="w-full bg-[#080B14] border border-[#2A3450] rounded px-3 py-2.5 text-sm text-stone-200 placeholder-stone-600 focus:border-amber-500 outline-none transition-colors"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-amber-500 text-[#080B14] font-semibold py-2.5 rounded text-sm hover:bg-amber-400 transition-colors disabled:opacity-50"
-          >
-            {loading ? "Creating account..." : "Create Account"}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-stone-500 mt-5">
-          Already have an account?{" "}
-          <Link to="/login" className="text-amber-400 hover:text-amber-300">
-            Sign in
-          </Link>
+        <p className="text-center text-[10px] text-ms-neutralLight mt-4">
+          Powered by{" "}
+          <a href="https://developersinfotech.in" target="_blank" rel="noreferrer" className="hover:underline">
+            developersinfotech.in
+          </a>
         </p>
       </div>
     </div>

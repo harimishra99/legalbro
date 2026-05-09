@@ -1,258 +1,116 @@
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import { DOC_TYPES } from "../lib/docTypes";
-
-const ALL_DOCS = Object.values(DOC_TYPES).flat();
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  visible: (i = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.08, duration: 0.5, ease: "easeOut" },
-  }),
-};
 
 export default function Landing() {
   const navigate = useNavigate();
-
   return (
-    <div className="min-h-screen bg-[#080B14] pt-[60px] overflow-x-hidden">
-      {/* ── HERO ── */}
-      <section className="relative min-h-[calc(100vh-60px)] flex flex-col items-center justify-center text-center px-4 py-20">
-        {/* Mesh grid background */}
-        <svg
-          className="absolute inset-0 w-full h-full opacity-[0.025] pointer-events-none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <pattern
-              id="grid"
-              width="48"
-              height="48"
-              patternUnits="userSpaceOnUse"
+    <div className="min-h-screen bg-ms-bg pt-12">
+
+      {/* Hero */}
+      <section className="bg-ms-blue text-white py-16 px-4 text-center">
+        <div className="max-w-3xl mx-auto">
+          <div className="inline-flex items-center gap-2 bg-white/15 rounded-full px-4 py-1.5 text-xs font-medium mb-6 tracking-wide">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-300 animate-pulse" />
+            AI-Powered · Instant · Professional
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-bold leading-tight mb-4">
+            Draft Legal Documents<br />in Seconds with AI
+          </h1>
+          <p className="text-white/80 text-base max-w-xl mx-auto mb-8 leading-relaxed">
+            Professional NDAs, MOUs, Rent Agreements &amp; more — generated instantly with law-firm precision. Your company letterhead, every time.
+          </p>
+          <div className="flex flex-wrap gap-3 justify-center">
+            <button
+              onClick={() => navigate("/draft")}
+              className="bg-white text-ms-blue font-semibold px-6 py-2.5 rounded hover:bg-ms-blueLight transition-colors text-sm"
             >
-              <path
-                d="M 48 0 L 0 0 0 48"
-                fill="none"
-                stroke="white"
-                strokeWidth="0.5"
-              />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid)" />
-        </svg>
-
-        {/* Soft radial glow */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(ellipse 80% 50% at 50% 30%, rgba(201,168,76,0.06) 0%, transparent 70%)",
-          }}
-        />
-
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={fadeUp}
-          custom={0}
-          className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-full px-4 py-1.5 text-[11px] text-amber-400 uppercase tracking-widest font-semibold mb-8"
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-          AI-Powered Legal Intelligence
-        </motion.div>
-
-        <motion.h1
-          initial="hidden"
-          animate="visible"
-          variants={fadeUp}
-          custom={1}
-          className="font-serif text-5xl sm:text-6xl lg:text-7xl font-bold text-stone-100 leading-[1.08] max-w-4xl mb-6"
-        >
-          Draft Legal Documents{" "}
-          <br className="hidden sm:block" />
-          in Seconds with{" "}
-          <span className="text-amber-400">AI</span>
-        </motion.h1>
-
-        <motion.p
-          initial="hidden"
-          animate="visible"
-          variants={fadeUp}
-          custom={2}
-          className="text-base sm:text-lg text-stone-400 max-w-xl leading-relaxed mb-10 font-light"
-        >
-          Professional NDAs, MOUs, Rent Agreements &amp; more — generated
-          instantly with law-firm precision.
-        </motion.p>
-
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={fadeUp}
-          custom={3}
-          className="flex flex-wrap items-center justify-center gap-3"
-        >
-          <button
-            onClick={() => navigate("/draft")}
-            className="bg-amber-500 text-[#080B14] font-semibold px-7 py-3 rounded text-sm hover:bg-amber-400 transition-all hover:-translate-y-0.5"
-          >
-            Get Started Free →
-          </button>
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="border border-[#3A4560] text-stone-300 font-medium px-7 py-3 rounded text-sm hover:border-amber-600 hover:text-amber-300 transition-colors"
-          >
-            View Dashboard
-          </button>
-        </motion.div>
-
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={fadeUp}
-          custom={4}
-          className="mt-8 inline-flex items-center gap-2 text-[10px] text-amber-600 border border-amber-600/20 bg-amber-600/5 px-3 py-1.5 rounded-full"
-        >
-          ✦ Powered by Claude AI
-        </motion.div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-          <span className="text-[9px] text-stone-600 uppercase tracking-widest">scroll</span>
-          <div className="w-px h-10 bg-gradient-to-b from-stone-600 to-transparent" />
+              Get Started Free →
+            </button>
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="bg-white/10 border border-white/30 text-white font-medium px-6 py-2.5 rounded hover:bg-white/20 transition-colors text-sm"
+            >
+              View Dashboard
+            </button>
+          </div>
         </div>
       </section>
 
-      {/* ── STATS BAR ── */}
-      <section className="border-y border-[#2A3450] bg-[#161D2E]">
-        <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 divide-x divide-[#2A3450] py-1">
+      {/* Stats */}
+      <section className="bg-white border-b border-ms-border">
+        <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 divide-x divide-ms-border">
           {[
-            { num: "20+", label: "Document Types" },
-            { num: "<30s", label: "Generation Time" },
-            { num: "100%", label: "AI Structured" },
-            { num: "Free", label: "To Get Started" },
-          ].map((s) => (
+            { num: "20+",   label: "Document Types"   },
+            { num: "<30s",  label: "Generation Time"  },
+            { num: "100%",  label: "AI Structured"    },
+            { num: "Free",  label: "To Get Started"   },
+          ].map(s => (
             <div key={s.label} className="text-center py-6 px-4">
-              <div className="font-serif text-3xl text-amber-300 font-bold">{s.num}</div>
-              <div className="text-[10px] text-stone-500 uppercase tracking-wider mt-1">
-                {s.label}
-              </div>
+              <div className="text-2xl font-bold text-ms-blue">{s.num}</div>
+              <div className="text-xs text-ms-neutralMid mt-1 uppercase tracking-wide">{s.label}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── FEATURES ── */}
-      <section className="py-24 px-4">
+      {/* Features */}
+      <section className="py-16 px-4">
         <div className="max-w-5xl mx-auto">
-          <p className="text-[10px] text-amber-500 uppercase tracking-widest font-semibold mb-3">
-            Why Legal Bro
-          </p>
-          <h2 className="font-serif text-4xl text-stone-100 mb-4 leading-tight">
-            Built for the modern
-            <br />
-            legal professional
-          </h2>
-          <p className="text-stone-400 text-base max-w-md leading-relaxed mb-12">
-            Whether you're a startup, freelancer, or enterprise — get
-            AI-generated, legally structured documents in seconds.
-          </p>
-
-          <div className="border border-[#2A3450] rounded-2xl overflow-hidden grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[#2A3450]">
+          <p className="text-xs font-semibold text-ms-blue uppercase tracking-widest mb-2">Why Legal Bro</p>
+          <h2 className="text-2xl font-bold text-ms-neutralDark mb-8">Built for modern professionals</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              {
-                icon: "🤖",
-                title: "AI Powered",
-                body: "Claude AI generates documents with precise legal language, numbered clauses, and proper signature blocks — not templates.",
-              },
-              {
-                icon: "⚖️",
-                title: "Legally Structured",
-                body: "Every document follows professional legal formatting with jurisdiction-specific clauses, definitions, and binding terms.",
-              },
-              {
-                icon: "⬇️",
-                title: "Instant Download",
-                body: "Copy to clipboard or download as PDF instantly. Save to your dashboard and access your documents anytime.",
-              },
-            ].map((f) => (
-              <div
-                key={f.title}
-                className="bg-[#161D2E] p-8 hover:bg-[#1C243A] transition-colors"
-              >
-                <div className="w-11 h-11 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center text-xl mb-5">
-                  {f.icon}
-                </div>
-                <h3 className="font-serif text-lg text-stone-100 mb-2">{f.title}</h3>
-                <p className="text-sm text-stone-400 leading-relaxed">{f.body}</p>
+              { icon:"🤖", title:"AI Powered",        body:"Claude & Groq AI generate documents with precise legal language, numbered clauses, and proper signature blocks." },
+              { icon:"⚖️", title:"Legally Structured", body:"Every document follows professional legal formatting with jurisdiction-specific clauses and binding terms." },
+              { icon:"🏢", title:"Your Letterhead",    body:"Upload your company logo and details once. Every generated PDF carries your professional letterhead automatically." },
+            ].map(f => (
+              <div key={f.title} className="bg-white border border-ms-border rounded-lg p-5 shadow-ms-sm hover:shadow-ms transition-shadow">
+                <div className="w-10 h-10 bg-ms-blueLight rounded-lg flex items-center justify-center text-xl mb-4">{f.icon}</div>
+                <h3 className="font-semibold text-ms-neutralDark mb-2 text-sm">{f.title}</h3>
+                <p className="text-xs text-ms-neutralMid leading-relaxed">{f.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── HOW IT WORKS ── */}
-      <section className="py-20 px-4 bg-[#161D2E] border-y border-[#2A3450]">
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="text-[10px] text-amber-500 uppercase tracking-widest font-semibold mb-3">
-            How It Works
-          </p>
-          <h2 className="font-serif text-4xl text-stone-100 mb-12">
-            Three steps to your document
-          </h2>
+      {/* How it works */}
+      <section className="py-16 px-4 bg-white border-y border-ms-border">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-xs font-semibold text-ms-blue uppercase tracking-widest mb-2">How It Works</p>
+          <h2 className="text-2xl font-bold text-ms-neutralDark mb-8">Three steps to your document</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {[
-              {
-                step: "01",
-                title: "Choose Document Type",
-                body: "Pick from 20+ legal document types across Core Legal, Business & Corporate, and Employment & HR categories.",
-              },
-              {
-                step: "02",
-                title: "Fill in Details",
-                body: "Enter the relevant party names, dates, amounts, and other specifics required for your document.",
-              },
-              {
-                step: "03",
-                title: "Download & Sign",
-                body: "Get your AI-drafted document instantly. Copy, save, or download as a PDF ready for review and signing.",
-              },
-            ].map((s) => (
-              <div key={s.step} className="text-left">
-                <div className="font-serif text-5xl text-amber-500/20 font-bold mb-4">
-                  {s.step}
+              { n:"01", title:"Choose Document Type",  body:"Pick from 20+ legal document types. Click once and the form appears immediately below." },
+              { n:"02", title:"Fill in Details",       body:"Enter party names, dates, amounts. The AI uses your company profile automatically." },
+              { n:"03", title:"Download with Letterhead", body:"Get your AI-drafted PDF with your company letterhead on every page, ready to sign." },
+            ].map(s => (
+              <div key={s.n} className="flex gap-4">
+                <div className="w-10 h-10 rounded-full bg-ms-blue text-white flex items-center justify-center text-sm font-bold shrink-0">{s.n}</div>
+                <div>
+                  <h3 className="font-semibold text-ms-neutralDark mb-1 text-sm">{s.title}</h3>
+                  <p className="text-xs text-ms-neutralMid leading-relaxed">{s.body}</p>
                 </div>
-                <h3 className="font-serif text-lg text-stone-100 mb-2">{s.title}</h3>
-                <p className="text-sm text-stone-400 leading-relaxed">{s.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── DOCUMENT TYPES ── */}
-      <section className="py-24 px-4">
+      {/* Document types */}
+      <section className="py-16 px-4">
         <div className="max-w-5xl mx-auto">
-          <p className="text-[10px] text-amber-500 uppercase tracking-widest font-semibold mb-3">
-            Document Library
-          </p>
-          <h2 className="font-serif text-4xl text-stone-100 mb-8">
-            20+ legal document types
-          </h2>
-
+          <p className="text-xs font-semibold text-ms-blue uppercase tracking-widest mb-2">Document Library</p>
+          <h2 className="text-2xl font-bold text-ms-neutralDark mb-6">20+ legal document types</h2>
           {Object.entries(DOC_TYPES).map(([cat, docs]) => (
-            <div key={cat} className="mb-8">
-              <h4 className="text-[10px] text-stone-500 uppercase tracking-widest font-semibold mb-3">
-                {cat}
-              </h4>
+            <div key={cat} className="mb-6">
+              <h4 className="text-xs font-semibold text-ms-neutralMid uppercase tracking-widest mb-2">{cat}</h4>
               <div className="flex flex-wrap gap-2">
-                {docs.map((d) => (
+                {docs.map(d => (
                   <button
                     key={d.id}
                     onClick={() => navigate("/draft")}
-                    className="bg-[#161D2E] border border-[#2A3450] rounded-full px-4 py-1.5 text-sm text-stone-400 hover:border-amber-600 hover:text-amber-300 transition-colors"
+                    className="bg-white border border-ms-border rounded px-3 py-1.5 text-xs text-ms-neutral hover:border-ms-blue hover:text-ms-blue hover:bg-ms-blueLight transition-colors"
                   >
                     {d.icon} {d.name}
                   </button>
@@ -263,42 +121,29 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── CTA BANNER ── */}
-      <section className="py-28 px-4 text-center relative overflow-hidden border-t border-[#2A3450]">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(ellipse 60% 60% at 50% 50%, rgba(201,168,76,0.05) 0%, transparent 70%)",
-          }}
-        />
-        <p className="text-[10px] text-amber-500 uppercase tracking-widest font-semibold mb-4 relative">
-          Get Started
-        </p>
-        <h2 className="font-serif text-5xl text-stone-100 mb-4 relative leading-tight">
-          Ready to draft your
-          <br />
-          first document?
-        </h2>
-        <p className="text-stone-400 mb-8 relative">
-          No credit card required. Generate your first document free.
-        </p>
+      {/* CTA */}
+      <section className="py-20 px-4 bg-ms-blue text-white text-center">
+        <h2 className="text-3xl font-bold mb-3">Ready to draft your first document?</h2>
+        <p className="text-white/70 mb-6 text-sm">No credit card required. Generate your first document free.</p>
         <button
           onClick={() => navigate("/draft")}
-          className="relative bg-amber-500 text-[#080B14] font-semibold px-8 py-3.5 rounded text-sm hover:bg-amber-400 transition-all hover:-translate-y-0.5"
+          className="bg-white text-ms-blue font-semibold px-7 py-3 rounded hover:bg-ms-blueLight transition-colors text-sm"
         >
           Start Drafting Now →
         </button>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer className="bg-[#0D1220] border-t border-[#2A3450] py-8 text-center">
-        <div className="font-serif text-lg text-amber-300 mb-2">⚖ Legal Bro</div>
-        <p className="text-xs text-stone-600">
-          AI-Powered Legal Document Drafter · © {new Date().getFullYear()} Legal Bro · All rights reserved
+      {/* Footer */}
+      <footer className="bg-ms-neutralDark text-white py-8 px-4 text-center">
+        <div className="text-base font-semibold mb-1">⚖ Legal Bro</div>
+        <p className="text-xs text-white/50 mb-1">
+          AI-Powered Legal Document Drafter · © {new Date().getFullYear()} Legal Bro
         </p>
-        <p className="text-[10px] text-stone-700 mt-1">
-          Documents are AI-generated and should be reviewed by a qualified legal professional.
+        <p className="text-xs text-white/30">
+          Powered by{" "}
+          <a href="https://developersinfotech.in" target="_blank" rel="noreferrer" className="underline hover:text-white/60">
+            developersinfotech.in
+          </a>
         </p>
       </footer>
     </div>
