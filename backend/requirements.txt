@@ -6,4 +6,4 @@ requests==2.32.3
 psycopg2-binary==2.9.9
 gunicorn==23.0.0
 PyJWT==2.9.0
-cryptography==43.0.1
+cryptography==43.0.1whitenoise==6.7.0
