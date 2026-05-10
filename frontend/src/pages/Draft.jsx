@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import jsPDF from "jspdf";
+import { generatePDF } from "../lib/pdfGenerator";
 import { DOC_TYPES } from "../lib/docTypes";
 import { generateDocument } from "../lib/api";
 import { getCompanyProfile } from "./CompanyProfile";
@@ -211,9 +211,13 @@ export default function Draft() {
     toast.success("Copied to clipboard!");
   };
 
-  const handlePDF = () => {
-    downloadDocAsPDF(generated, selected?.name || "Document", profile);
-    toast.success("PDF downloaded!");
+  const handlePDF = async () => {
+    try {
+      await generatePDF(generated, selected?.name || "Document", profile);
+      toast.success("PDF downloaded!");
+    } catch(e) {
+      toast.error("PDF failed: " + e.message);
+    }
   };
 
   const resetAll = () => {
@@ -480,7 +484,43 @@ function buildPrompt(docType, fields, profile) {
     .map(f => `  ${f.label}: ${fields[f.id] || ""}`)
     .join("\n");
   const companyCtx = profile?.name
-    ? `\nThis document is being prepared by/for: ${profile.name}${profile.address ? `, ${profile.address}` : ""}${profile.gstin ? `, GSTIN: ${profile.gstin}` : ""}.`
+    ? `\nPrepared by: ${profile.name}${profile.address ? `, ${profile.address}` : ""}${profile.gstin ? `, GSTIN: ${profile.gstin}` : ""}${profile.cin ? `, CIN: ${profile.cin}` : ""}.`
     : "";
-  return `You are a professional legal document drafter. Draft a complete, professional ${docType.name} (${docType.desc}) using these details:\n\n${fieldLines}${companyCtx}\n\nRequirements:\n- Proper numbered clause structure (1., 1.1, 1.2)\n- Definitions section\n- Formal legal language appropriate for India\n- All standard clauses for this document type\n- Signature block with parties, date, and witnesses\n- Headings in CAPS e.g. CLAUSE 1: DEFINITIONS\n- Include governing law, jurisdiction, dispute resolution\n- Length: 700-1000 words, complete and ready to sign\n\nOutput ONLY the document text.`;
+
+  return `You are a senior Indian legal document drafter. Draft a complete, professional, ready-to-sign ${docType.name} using these details:
+
+${fieldLines}${companyCtx}
+
+STRICT FORMATTING RULES — follow exactly:
+1. Major section headings MUST be written in ALL CAPS on their own line, e.g.:
+   RECITALS
+   CLAUSE 1: DEFINITIONS
+   CLAUSE 2: OBLIGATIONS OF THE PARTIES
+   GOVERNING LAW AND JURISDICTION
+   DISPUTE RESOLUTION
+   MISCELLANEOUS
+   IN WITNESS WHEREOF
+
+2. Sub-clauses use numbered format on their own line, e.g.:
+   1.1 "Confidential Information" means...
+   1.2 "Disclosing Party" means...
+
+3. List items use: a) b) c) format
+
+4. Leave a blank line between each clause and section.
+
+5. Signature block at end — each item on its own line:
+   For [Party Name]:
+   Signature:
+   Name:
+   Designation:
+   Date:
+   Place:
+   Witness 1:
+   Witness 2:
+
+6. Do NOT use markdown (no **, no #, no ---). Plain text only.
+7. Write 800-1100 words. Every clause must be complete and legally binding.
+
+Output ONLY the document. No commentary, no preamble.`;
 }

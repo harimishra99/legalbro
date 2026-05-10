@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import jsPDF from "jspdf";
+import { generatePDF } from "../lib/pdfGenerator";
 import { getCompanyProfile } from "./CompanyProfile";
 
 function getSavedDocs()  { return JSON.parse(localStorage.getItem("lb_docs")  || "[]"); }
@@ -10,48 +10,6 @@ function getRateCount()  {
   return JSON.parse(localStorage.getItem("lb_rate") || "{}")[key] || 0;
 }
 
-function downloadPDF(doc, profile) {
-  const pdf   = new jsPDF({ unit:"mm", format:"a4" });
-  const pageW = pdf.internal.pageSize.getWidth();
-  const pageH = pdf.internal.pageSize.getHeight();
-  const margin = 20, usable = pageW - margin * 2;
-
-  const addLetterhead = (pageNum) => {
-    pdf.setFillColor(0, 120, 212);
-    pdf.rect(0, 0, pageW, 18, "F");
-    pdf.setFont("helvetica","bold"); pdf.setFontSize(11); pdf.setTextColor(255,255,255);
-    pdf.text(profile?.name || "Legal Bro", margin, 11);
-    if (profile?.tagline) {
-      pdf.setFont("helvetica","normal"); pdf.setFontSize(7); pdf.setTextColor(220,235,248);
-      pdf.text(profile.tagline, pageW - margin, 11, { align:"right" });
-    }
-    pdf.setDrawColor(0,120,212); pdf.setLineWidth(0.3);
-    pdf.line(margin, 20, pageW - margin, 20);
-    pdf.setDrawColor(200,198,196); pdf.setLineWidth(0.2);
-    pdf.line(margin, pageH - 14, pageW - margin, pageH - 14);
-    pdf.setFont("helvetica","normal"); pdf.setFontSize(6.5); pdf.setTextColor(96,94,92);
-    const parts = [];
-    if (profile?.gstin)   parts.push(`GSTIN: ${profile.gstin}`);
-    if (profile?.cin)     parts.push(`CIN: ${profile.cin}`);
-    if (profile?.address) parts.push(profile.address.replace(/\n/g,", "));
-    pdf.text((parts.join("  |  ") || " ").slice(0, 90), margin, pageH - 9);
-    pdf.setFontSize(6); pdf.setTextColor(161,159,157);
-    pdf.text("Powered by developersinfotech.in", margin, pageH - 5);
-    pdf.text(`Page ${pageNum}`, pageW - margin, pageH - 5, { align:"right" });
-  };
-
-  pdf.setFont("helvetica","normal"); pdf.setFontSize(9.5); pdf.setTextColor(32,31,30);
-  const lines = pdf.splitTextToSize(doc.text, usable);
-  let y = 26, pageNum = 1;
-  addLetterhead(pageNum);
-  lines.forEach(line => {
-    if (y + 5 > pageH - 18) { pdf.addPage(); pageNum++; addLetterhead(pageNum); y = 26; }
-    const isH = /^[A-Z\s\d]+:/.test(line) || (line === line.toUpperCase() && line.trim().length > 2 && line.trim().length < 60);
-    pdf.setFont("helvetica", isH ? "bold" : "normal"); pdf.setFontSize(isH ? 9 : 9.5);
-    pdf.text(line, margin, y); y += isH ? 6 : 5;
-  });
-  pdf.save(`${doc.docTypeName}_${profile?.name || "LegalBro"}.pdf`);
-}
 
 export default function Dashboard() {
   const navigate  = useNavigate();
@@ -173,7 +131,7 @@ export default function Dashboard() {
                   View
                 </button>
                 <button
-                  onClick={() => { downloadPDF(doc, profile); toast.success("PDF downloaded!"); }}
+                  onClick={async () => { await generatePDF(doc.text, doc.docTypeName, profile); toast.success("PDF downloaded!"); }}
                   className="text-[11px] border border-ms-border text-ms-neutralMid px-2.5 py-1 rounded hover:border-ms-blue hover:text-ms-blue hover:bg-ms-blueLight transition-colors"
                 >
                   PDF
@@ -211,7 +169,7 @@ export default function Dashboard() {
               </h3>
               <div className="flex gap-2">
                 <button
-                  onClick={() => { downloadPDF(viewDoc, profile); toast.success("PDF downloaded!"); }}
+                  onClick={async () => { await generatePDF(viewDoc.text, viewDoc.docTypeName, profile); toast.success("PDF downloaded!"); }}
                   className="text-xs border border-ms-border text-ms-neutralMid px-3 py-1 rounded hover:border-ms-blue hover:text-ms-blue transition-colors"
                 >
                   ⬇ PDF
