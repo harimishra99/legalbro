@@ -276,18 +276,35 @@ export async function generatePDF(text, docTypeName, profile) {
     }
     else if (block.type === "sig") {
       await checkNewPage(8);
-      if (lastType !== "sig") curY += 3;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8.5);
-      doc.setTextColor(...DARK);
-      doc.text(block.text, mL, curY);
-      // Underline for signature lines
-      if (/^(signature|name|date|witness)/i.test(block.text)) {
+      if (lastType !== "sig") curY += 4;
+      const t = block.text;
+      // "For CompanyName:" or "For and on behalf" — bold label, no underline
+      if (/^(for |in witness)/i.test(t)) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(...BLUE);
+        doc.text(t, mL, curY);
+        curY += 7;
+      }
+      // Lines that need a fill-in underline: Signature / Name / Date / Place / Designation / Witness
+      else if (/^(signature|name|date|place|designation|witness|authorized|company seal)/i.test(t)) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(...DARK);
+        const label = t.endsWith(":") ? t : t + ":";
+        doc.text(label, mL, curY);
         doc.setDrawColor(...LIGHT);
         doc.setLineWidth(0.2);
-        doc.line(mL + 30, curY + 1, mL + 100, curY + 1);
+        doc.line(mL + 35, curY + 1, mL + 90, curY + 1);
+        curY += 7;
       }
-      curY += 6;
+      else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(...DARK);
+        doc.text(t, mL, curY);
+        curY += 6;
+      }
     }
     else {
       // body text
@@ -306,36 +323,6 @@ export async function generatePDF(text, docTypeName, profile) {
 
     lastType = block.type;
   }
-
-  // ── Signature block at end ────────────────────────────────────────────────
-  await checkNewPage(50);
-  curY += 8;
-  doc.setDrawColor(...LIGHT);
-  doc.setLineWidth(0.3);
-  doc.line(mL, curY, pageW - mR, curY);
-  curY += 6;
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(...BLUE);
-  doc.text("EXECUTION", pageW / 2, curY, { align:"center" });
-  curY += 8;
-
-  // Two-column signature block
-  const col1 = mL, col2 = pageW / 2 + 5;
-  const sigLabels = ["Signed by:", "Name:", "Designation:", "Date:", "Place:"];
-  sigLabels.forEach(lbl => {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(...DARK);
-    doc.text(lbl, col1, curY);
-    doc.text(lbl, col2, curY);
-    doc.setDrawColor(...LIGHT);
-    doc.setLineWidth(0.2);
-    doc.line(col1 + 25, curY + 1, col1 + 80, curY + 1);
-    doc.line(col2 + 25, curY + 1, col2 + 80, curY + 1);
-    curY += 8;
-  });
 
   doc.save(`${docTypeName.replace(/\s+/g,"_")}_${profile?.name || "LegalBro"}.pdf`);
 }
