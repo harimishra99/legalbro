@@ -10,7 +10,7 @@ export default function Navbar() {
   const navigate       = useNavigate();
   const { pathname }   = useLocation();
   const [open, setOpen] = useState(false);
-  const profile        = getCompanyProfile();
+  const [profile] = useState(() => getCompanyProfile());
 
   const handleAuth = async () => {
     setOpen(false);
