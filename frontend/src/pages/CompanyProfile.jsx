@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -10,6 +10,46 @@ export function getCompanyProfile() {
   } catch { return null; }
 }
 
+// ── Field components defined OUTSIDE the page component ──────────────────────
+// This is critical — if defined inside, React treats them as new component
+// types on every render and unmounts/remounts them, stealing input focus.
+
+function TextField({ label, id, value, placeholder, onChange }) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-ms-neutralMid uppercase tracking-wider mb-1.5">
+        {label}
+      </label>
+      <input
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        onChange={e => onChange(id, e.target.value)}
+        className="w-full border border-ms-border rounded px-3 py-2 text-sm text-ms-neutral placeholder-ms-neutralLight focus:outline-none focus:border-ms-blue focus:ring-1 focus:ring-ms-blue bg-white transition"
+      />
+    </div>
+  );
+}
+
+function TextAreaField({ label, id, value, placeholder, onChange }) {
+  return (
+    <div className="md:col-span-2">
+      <label className="block text-xs font-semibold text-ms-neutralMid uppercase tracking-wider mb-1.5">
+        {label}
+      </label>
+      <textarea
+        rows={3}
+        value={value}
+        placeholder={placeholder}
+        onChange={e => onChange(id, e.target.value)}
+        className="w-full border border-ms-border rounded px-3 py-2 text-sm text-ms-neutral placeholder-ms-neutralLight focus:outline-none focus:border-ms-blue focus:ring-1 focus:ring-ms-blue bg-white resize-none transition"
+      />
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
 export default function CompanyProfile() {
   const navigate = useNavigate();
   const fileRef  = useRef(null);
@@ -18,14 +58,16 @@ export default function CompanyProfile() {
     const saved = getCompanyProfile();
     return saved || {
       name: "", tagline: "", cin: "", gstin: "", pan: "",
-      address: "", email: "", phone: "", website: "",
-      logo: null,   // base64
+      address: "", email: "", phone: "", website: "", logo: null,
     };
   });
   const [dragging, setDragging] = useState(false);
-  const [saving, setSaving]     = useState(false);
+  const [saving,   setSaving]   = useState(false);
 
-  const update = (k, v) => setProfile(p => ({ ...p, [k]: v }));
+  // Stable callback — won't change between renders
+  const handleChange = useCallback((key, value) => {
+    setProfile(prev => ({ ...prev, [key]: value }));
+  }, []);
 
   const handleLogoFile = (file) => {
     if (!file) return;
@@ -38,7 +80,7 @@ export default function CompanyProfile() {
       return;
     }
     const reader = new FileReader();
-    reader.onload = (e) => update("logo", e.target.result);
+    reader.onload = e => setProfile(prev => ({ ...prev, logo: e.target.result }));
     reader.readAsDataURL(file);
   };
 
@@ -68,30 +110,17 @@ export default function CompanyProfile() {
     toast.success("Profile cleared");
   };
 
-  const Field = ({ label, id, value, placeholder, half, textarea }) => (
-    <div className={half ? "" : "md:col-span-2"}>
-      <label className="block text-xs font-semibold text-ms-neutralMid uppercase tracking-wider mb-1.5">
-        {label}
-      </label>
-      {textarea ? (
-        <textarea
-          rows={3}
-          value={value}
-          onChange={e => update(id, e.target.value)}
-          placeholder={placeholder}
-          className="w-full border border-ms-border rounded px-3 py-2 text-sm text-ms-neutral placeholder-ms-neutralLight focus:outline-none focus:border-ms-blue focus:ring-1 focus:ring-ms-blue bg-white resize-none transition"
-        />
-      ) : (
-        <input
-          type="text"
-          value={value}
-          onChange={e => update(id, e.target.value)}
-          placeholder={placeholder}
-          className="w-full border border-ms-border rounded px-3 py-2 text-sm text-ms-neutral placeholder-ms-neutralLight focus:outline-none focus:border-ms-blue focus:ring-1 focus:ring-ms-blue bg-white transition"
-        />
-      )}
-    </div>
-  );
+  const fields = [
+    { id:"name",    label:"Company Name *",      ph:"Acme Pvt. Ltd.",              area:false },
+    { id:"tagline", label:"Tagline / Slogan",     ph:"Your trusted legal partner",  area:false },
+    { id:"cin",     label:"CIN",                  ph:"U72900DL2020PTC123456",       area:false },
+    { id:"gstin",   label:"GSTIN",                ph:"07AABCU9603R1ZP",             area:false },
+    { id:"pan",     label:"PAN",                  ph:"AABCU9603R",                  area:false },
+    { id:"phone",   label:"Phone",                ph:"+91 98765 43210",             area:false },
+    { id:"email",   label:"Email",                ph:"legal@company.com",           area:false },
+    { id:"website", label:"Website",              ph:"www.company.com",             area:false },
+    { id:"address", label:"Registered Address",   ph:"123, Business Park, New Delhi – 110001", area:true },
+  ];
 
   return (
     <div className="min-h-screen bg-ms-bg pt-[48px] pb-12">
@@ -105,15 +134,12 @@ export default function CompanyProfile() {
               Your details will appear as a letterhead on every generated document
             </p>
           </div>
-          <button
-            onClick={() => navigate("/draft")}
-            className="text-sm text-ms-blue hover:underline"
-          >
+          <button onClick={() => navigate("/draft")} className="text-sm text-ms-blue hover:underline">
             ← Back to Draft
           </button>
         </div>
 
-        {/* Preview banner */}
+        {/* Live preview banner */}
         {profile.name && (
           <div className="bg-ms-blueLight border border-ms-blueMid rounded-lg px-4 py-3 mb-6 flex items-center gap-3">
             {profile.logo && (
@@ -131,13 +157,12 @@ export default function CompanyProfile() {
 
         <div className="bg-white rounded-lg shadow-ms border border-ms-border overflow-hidden">
 
-          {/* Logo Upload */}
+          {/* Logo upload */}
           <div className="p-6 border-b border-ms-border">
             <div className="text-xs font-semibold text-ms-neutralMid uppercase tracking-wider mb-3">
               Company Logo
             </div>
             <div className="flex items-start gap-6">
-              {/* Drop zone */}
               <div
                 onDragOver={e => { e.preventDefault(); setDragging(true); }}
                 onDragLeave={() => setDragging(false)}
@@ -152,7 +177,7 @@ export default function CompanyProfile() {
                   <>
                     <span className="text-2xl mb-1">🏢</span>
                     <span className="text-[10px] text-ms-neutralMid leading-tight">
-                      Drop logo here<br/>or click to upload
+                      Drop logo here<br />or click to upload
                     </span>
                   </>
                 )}
@@ -168,10 +193,12 @@ export default function CompanyProfile() {
                 <p className="text-sm text-ms-neutralMid leading-relaxed">
                   Upload your company logo. It will appear in the top-left of every document letterhead.
                 </p>
-                <p className="text-xs text-ms-neutralLight mt-2">PNG, JPG or SVG · Max 2 MB · Recommended: 300×100px</p>
+                <p className="text-xs text-ms-neutralLight mt-2">
+                  PNG, JPG or SVG · Max 2 MB · Recommended: 300×100px
+                </p>
                 {profile.logo && (
                   <button
-                    onClick={() => update("logo", null)}
+                    onClick={() => setProfile(p => ({ ...p, logo: null }))}
                     className="mt-3 text-xs text-ms-red hover:underline"
                   >
                     Remove logo
@@ -181,21 +208,33 @@ export default function CompanyProfile() {
             </div>
           </div>
 
-          {/* Company Details */}
+          {/* Fields */}
           <div className="p-6">
             <div className="text-xs font-semibold text-ms-neutralMid uppercase tracking-wider mb-4">
               Company Details
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field id="name"     label="Company Name *"   value={profile.name}     placeholder="Acme Pvt. Ltd." />
-              <Field id="tagline"  label="Tagline / Slogan" value={profile.tagline}  placeholder="Your trusted legal partner" half />
-              <Field id="cin"      label="CIN"              value={profile.cin}      placeholder="U72900DL2020PTC123456" half />
-              <Field id="gstin"    label="GSTIN"            value={profile.gstin}    placeholder="07AABCU9603R1ZP" half />
-              <Field id="pan"      label="PAN"              value={profile.pan}      placeholder="AABCU9603R" half />
-              <Field id="phone"    label="Phone"            value={profile.phone}    placeholder="+91 98765 43210" half />
-              <Field id="email"    label="Email"            value={profile.email}    placeholder="legal@company.com" half />
-              <Field id="website"  label="Website"          value={profile.website}  placeholder="www.company.com" half />
-              <Field id="address"  label="Registered Address" value={profile.address} placeholder="123, Business Park, New Delhi – 110001" textarea />
+              {fields.map(f =>
+                f.area ? (
+                  <TextAreaField
+                    key={f.id}
+                    id={f.id}
+                    label={f.label}
+                    value={profile[f.id]}
+                    placeholder={f.ph}
+                    onChange={handleChange}
+                  />
+                ) : (
+                  <TextField
+                    key={f.id}
+                    id={f.id}
+                    label={f.label}
+                    value={profile[f.id]}
+                    placeholder={f.ph}
+                    onChange={handleChange}
+                  />
+                )
+              )}
             </div>
           </div>
 
