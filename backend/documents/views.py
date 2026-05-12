@@ -138,3 +138,42 @@ class RateLimitStatusView(APIView):
             "limit":     settings.DOCUMENT_DAILY_LIMIT,
             "remaining": max(0, settings.DOCUMENT_DAILY_LIMIT - count),
         })
+
+
+class CompanyProfileView(APIView):
+    """
+    GET  /api/profile/  — fetch current user's company profile
+    POST /api/profile/  — create or update company profile
+    """
+
+    def get(self, request):
+        from .models import CompanyProfile
+        from .serializers import CompanyProfileSerializer
+        try:
+            profile = CompanyProfile.objects.get(user_id=request.user.id)
+            return Response(CompanyProfileSerializer(profile).data)
+        except CompanyProfile.DoesNotExist:
+            return Response({})
+
+    def post(self, request):
+        from .models import CompanyProfile
+        from .serializers import CompanyProfileSerializer
+
+        profile, _ = CompanyProfile.objects.get_or_create(
+            user_id=request.user.id,
+            defaults={"user_email": request.user.email},
+        )
+
+        # Validate logo size — base64 of 2MB image ~ 2.7MB string
+        logo = request.data.get("logo_base64", "")
+        if logo and len(logo) > 3 * 1024 * 1024:
+            return Response(
+                {"error": "Logo too large. Max 2 MB."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = CompanyProfileSerializer(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

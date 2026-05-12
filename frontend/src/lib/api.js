@@ -47,3 +47,21 @@ export async function fetchRateLimit() {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
+
+export async function fetchCompanyProfile() {
+  const res = await fetch(`${BASE_URL}/api/profile/`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function saveCompanyProfile(data) {
+  const res = await fetch(`${BASE_URL}/api/profile/`, {
+    method:  "POST",
+    headers: await authHeaders(),
+    body:    JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}

@@ -1,18 +1,23 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { fetchCompanyProfile, saveCompanyProfile } from "../lib/api";
+import { useAuth } from "../components/AuthContext";
 
-const STORAGE_KEY = "lb_company_profile";
+const LS_KEY = "lb_company_profile";
 
+// Always read from localStorage as fallback for non-logged-in use
 export function getCompanyProfile() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-  } catch { return null; }
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || "null"); }
+  catch { return null; }
 }
 
-// ── Field components defined OUTSIDE the page component ──────────────────────
-// This is critical — if defined inside, React treats them as new component
-// types on every render and unmounts/remounts them, stealing input focus.
+const EMPTY = {
+  name:"", tagline:"", cin:"", gstin:"", pan:"",
+  address:"", email:"", phone:"", website:"", logo_base64: null,
+};
+
+// ── Field components — defined OUTSIDE to prevent focus loss ─────────────────
 
 function TextField({ label, id, value, placeholder, onChange }) {
   return (
@@ -22,7 +27,7 @@ function TextField({ label, id, value, placeholder, onChange }) {
       </label>
       <input
         type="text"
-        value={value}
+        value={value || ""}
         placeholder={placeholder}
         onChange={e => onChange(id, e.target.value)}
         className="w-full border border-ms-border rounded px-3 py-2 text-sm text-ms-neutral placeholder-ms-neutralLight focus:outline-none focus:border-ms-blue focus:ring-1 focus:ring-ms-blue bg-white transition"
@@ -39,7 +44,7 @@ function TextAreaField({ label, id, value, placeholder, onChange }) {
       </label>
       <textarea
         rows={3}
-        value={value}
+        value={value || ""}
         placeholder={placeholder}
         onChange={e => onChange(id, e.target.value)}
         className="w-full border border-ms-border rounded px-3 py-2 text-sm text-ms-neutral placeholder-ms-neutralLight focus:outline-none focus:border-ms-blue focus:ring-1 focus:ring-ms-blue bg-white resize-none transition"
@@ -51,20 +56,46 @@ function TextAreaField({ label, id, value, placeholder, onChange }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function CompanyProfile() {
-  const navigate = useNavigate();
-  const fileRef  = useRef(null);
+  const navigate    = useNavigate();
+  const fileRef     = useRef(null);
+  const { user }    = useAuth();
 
-  const [profile, setProfile] = useState(() => {
-    const saved = getCompanyProfile();
-    return saved || {
-      name: "", tagline: "", cin: "", gstin: "", pan: "",
-      address: "", email: "", phone: "", website: "", logo: null,
-    };
-  });
+  const [profile,  setProfile]  = useState(EMPTY);
   const [dragging, setDragging] = useState(false);
   const [saving,   setSaving]   = useState(false);
+  const [loading,  setLoading]  = useState(true);
 
-  // Stable callback — won't change between renders
+  // ── Load from DB on mount, fall back to localStorage ─────────────────────
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      if (user) {
+        try {
+          const data = await fetchCompanyProfile();
+          if (data && data.name) {
+            // Map logo_base64 → logo for internal use
+            const p = { ...EMPTY, ...data, logo: data.logo_base64 || null };
+            setProfile(p);
+            localStorage.setItem(LS_KEY, JSON.stringify(p));
+          } else {
+            // Nothing in DB yet — try localStorage
+            const local = getCompanyProfile();
+            if (local) setProfile({ ...EMPTY, ...local });
+          }
+        } catch {
+          // API unavailable — use localStorage
+          const local = getCompanyProfile();
+          if (local) setProfile({ ...EMPTY, ...local });
+        }
+      } else {
+        const local = getCompanyProfile();
+        if (local) setProfile({ ...EMPTY, ...local });
+      }
+      setLoading(false);
+    }
+    load();
+  }, [user]);
+
   const handleChange = useCallback((key, value) => {
     setProfile(prev => ({ ...prev, [key]: value }));
   }, []);
@@ -80,7 +111,7 @@ export default function CompanyProfile() {
       return;
     }
     const reader = new FileReader();
-    reader.onload = e => setProfile(prev => ({ ...prev, logo: e.target.result }));
+    reader.onload = e => setProfile(prev => ({ ...prev, logo: e.target.result, logo_base64: e.target.result }));
     reader.readAsDataURL(file);
   };
 
@@ -90,37 +121,70 @@ export default function CompanyProfile() {
     handleLogoFile(e.dataTransfer.files[0]);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!profile.name.trim()) {
       toast.error("Company name is required");
       return;
     }
     setSaving(true);
-    setTimeout(() => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    try {
+      const payload = {
+        name:       profile.name,
+        tagline:    profile.tagline,
+        cin:        profile.cin,
+        gstin:      profile.gstin,
+        pan:        profile.pan,
+        address:    profile.address,
+        email:      profile.email,
+        phone:      profile.phone,
+        website:    profile.website,
+        logo_base64: profile.logo || profile.logo_base64 || "",
+      };
+
+      // Save to localStorage always
+      localStorage.setItem(LS_KEY, JSON.stringify({ ...payload, logo: payload.logo_base64 }));
+
+      // Save to DB if logged in
+      if (user) {
+        await saveCompanyProfile(payload);
+        toast.success("Profile saved to your account!");
+      } else {
+        toast.success("Profile saved locally!");
+      }
+    } catch (e) {
+      // DB failed — at least localStorage worked
+      toast.success("Saved locally (sign in to sync to cloud)");
+    } finally {
       setSaving(false);
-      toast.success("Company profile saved!");
-    }, 400);
+    }
   };
 
   const handleClear = () => {
     if (!confirm("Clear your company profile?")) return;
-    localStorage.removeItem(STORAGE_KEY);
-    setProfile({ name:"", tagline:"", cin:"", gstin:"", pan:"", address:"", email:"", phone:"", website:"", logo:null });
+    localStorage.removeItem(LS_KEY);
+    setProfile(EMPTY);
     toast.success("Profile cleared");
   };
 
   const fields = [
-    { id:"name",    label:"Company Name *",      ph:"Acme Pvt. Ltd.",              area:false },
-    { id:"tagline", label:"Tagline / Slogan",     ph:"Your trusted legal partner",  area:false },
-    { id:"cin",     label:"CIN",                  ph:"U72900DL2020PTC123456",       area:false },
-    { id:"gstin",   label:"GSTIN",                ph:"07AABCU9603R1ZP",             area:false },
-    { id:"pan",     label:"PAN",                  ph:"AABCU9603R",                  area:false },
-    { id:"phone",   label:"Phone",                ph:"+91 98765 43210",             area:false },
-    { id:"email",   label:"Email",                ph:"legal@company.com",           area:false },
-    { id:"website", label:"Website",              ph:"www.company.com",             area:false },
-    { id:"address", label:"Registered Address",   ph:"123, Business Park, New Delhi – 110001", area:true },
+    { id:"name",    label:"Company Name *",    ph:"Acme Pvt. Ltd.",              area:false },
+    { id:"tagline", label:"Tagline / Slogan",   ph:"Your trusted legal partner",  area:false },
+    { id:"cin",     label:"CIN",                ph:"U72900DL2020PTC123456",       area:false },
+    { id:"gstin",   label:"GSTIN",              ph:"07AABCU9603R1ZP",             area:false },
+    { id:"pan",     label:"PAN",                ph:"AABCU9603R",                  area:false },
+    { id:"phone",   label:"Phone",              ph:"+91 98765 43210",             area:false },
+    { id:"email",   label:"Email",              ph:"legal@company.com",           area:false },
+    { id:"website", label:"Website",            ph:"www.company.com",             area:false },
+    { id:"address", label:"Registered Address", ph:"123, Business Park, New Delhi – 110001", area:true },
   ];
+
+  if (loading) return (
+    <div className="min-h-screen bg-ms-bg pt-12 flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-ms-border border-t-ms-blue rounded-full animate-spin" />
+    </div>
+  );
+
+  const logo = profile.logo || profile.logo_base64 || null;
 
   return (
     <div className="min-h-screen bg-ms-bg pt-[48px] pb-12">
@@ -131,7 +195,9 @@ export default function CompanyProfile() {
           <div>
             <h1 className="text-2xl font-semibold text-ms-neutralDark">Company Profile</h1>
             <p className="text-sm text-ms-neutralMid mt-1">
-              Your details will appear as a letterhead on every generated document
+              {user
+                ? "Saved to your account — available on all devices"
+                : "Sign in to sync across devices"}
             </p>
           </div>
           <button onClick={() => navigate("/draft")} className="text-sm text-ms-blue hover:underline">
@@ -139,12 +205,18 @@ export default function CompanyProfile() {
           </button>
         </div>
 
-        {/* Live preview banner */}
+        {/* Not logged in warning */}
+        {!user && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-5 text-sm text-amber-800">
+            ⚠ You're not signed in. Profile will be saved locally only.{" "}
+            <button onClick={() => navigate("/login")} className="underline font-medium">Sign in</button> to sync to cloud.
+          </div>
+        )}
+
+        {/* Live preview */}
         {profile.name && (
           <div className="bg-ms-blueLight border border-ms-blueMid rounded-lg px-4 py-3 mb-6 flex items-center gap-3">
-            {profile.logo && (
-              <img src={profile.logo} alt="logo" className="h-10 w-auto object-contain" />
-            )}
+            {logo && <img src={logo} alt="logo" className="h-10 w-auto object-contain" />}
             <div>
               <div className="font-semibold text-ms-neutralDark text-sm">{profile.name}</div>
               {profile.tagline && <div className="text-xs text-ms-neutralMid">{profile.tagline}</div>}
@@ -171,8 +243,8 @@ export default function CompanyProfile() {
                 className={`w-40 h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all text-center px-2
                   ${dragging ? "border-ms-blue bg-ms-blueLight" : "border-ms-borderMid hover:border-ms-blue hover:bg-ms-blueLight"}`}
               >
-                {profile.logo ? (
-                  <img src={profile.logo} alt="logo" className="max-h-20 max-w-full object-contain rounded" />
+                {logo ? (
+                  <img src={logo} alt="logo" className="max-h-20 max-w-full object-contain rounded" />
                 ) : (
                   <>
                     <span className="text-2xl mb-1">🏢</span>
@@ -182,23 +254,16 @@ export default function CompanyProfile() {
                   </>
                 )}
               </div>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={e => handleLogoFile(e.target.files[0])}
-              />
+              <input ref={fileRef} type="file" accept="image/*" className="hidden"
+                onChange={e => handleLogoFile(e.target.files[0])} />
               <div className="flex-1">
                 <p className="text-sm text-ms-neutralMid leading-relaxed">
-                  Upload your company logo. It will appear in the top-left of every document letterhead.
+                  Upload your company logo. Appears on every document letterhead.
                 </p>
-                <p className="text-xs text-ms-neutralLight mt-2">
-                  PNG, JPG or SVG · Max 2 MB · Recommended: 300×100px
-                </p>
-                {profile.logo && (
+                <p className="text-xs text-ms-neutralLight mt-2">PNG, JPG or SVG · Max 2 MB</p>
+                {logo && (
                   <button
-                    onClick={() => setProfile(p => ({ ...p, logo: null }))}
+                    onClick={() => setProfile(p => ({ ...p, logo: null, logo_base64: "" }))}
                     className="mt-3 text-xs text-ms-red hover:underline"
                   >
                     Remove logo
@@ -216,23 +281,11 @@ export default function CompanyProfile() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {fields.map(f =>
                 f.area ? (
-                  <TextAreaField
-                    key={f.id}
-                    id={f.id}
-                    label={f.label}
-                    value={profile[f.id]}
-                    placeholder={f.ph}
-                    onChange={handleChange}
-                  />
+                  <TextAreaField key={f.id} id={f.id} label={f.label}
+                    value={profile[f.id]} placeholder={f.ph} onChange={handleChange} />
                 ) : (
-                  <TextField
-                    key={f.id}
-                    id={f.id}
-                    label={f.label}
-                    value={profile[f.id]}
-                    placeholder={f.ph}
-                    onChange={handleChange}
-                  />
+                  <TextField key={f.id} id={f.id} label={f.label}
+                    value={profile[f.id]} placeholder={f.ph} onChange={handleChange} />
                 )
               )}
             </div>
@@ -240,43 +293,31 @@ export default function CompanyProfile() {
 
           {/* Actions */}
           <div className="px-6 py-4 bg-ms-bg border-t border-ms-border flex items-center justify-between">
-            <button
-              onClick={handleClear}
-              className="text-sm text-ms-neutralMid hover:text-ms-red transition-colors"
-            >
+            <button onClick={handleClear} className="text-sm text-ms-neutralMid hover:text-ms-red transition-colors">
               Clear Profile
             </button>
             <div className="flex gap-3">
-              <button
-                onClick={() => navigate(-1)}
-                className="px-4 py-2 text-sm border border-ms-border rounded text-ms-neutral hover:bg-ms-hover transition-colors"
-              >
+              <button onClick={() => navigate(-1)}
+                className="px-4 py-2 text-sm border border-ms-border rounded text-ms-neutral hover:bg-ms-hover transition-colors">
                 Cancel
               </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-5 py-2 text-sm bg-ms-blue text-white rounded hover:bg-ms-blueDark transition-colors font-medium disabled:opacity-60"
-              >
-                {saving ? "Saving..." : "Save Profile"}
+              <button onClick={handleSave} disabled={saving}
+                className="px-5 py-2 text-sm bg-ms-blue text-white rounded hover:bg-ms-blueDark transition-colors font-medium disabled:opacity-60">
+                {saving ? "Saving..." : user ? "Save to Account" : "Save Locally"}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Info box */}
         <div className="mt-4 bg-white border border-ms-border rounded-lg px-4 py-3">
-          <div className="text-xs font-semibold text-ms-neutralMid uppercase tracking-wider mb-2">
-            How it works
-          </div>
+          <div className="text-xs font-semibold text-ms-neutralMid uppercase tracking-wider mb-2">How it works</div>
           <ul className="text-xs text-ms-neutralMid space-y-1.5">
-            <li>✓ Your logo and company name appear at the top of every generated document</li>
-            <li>✓ CIN, GSTIN and address are included in the document footer on each page</li>
-            <li>✓ A small "Powered by developersinfotech.in" credit appears at the bottom-left</li>
-            <li>✓ Profile is saved locally — fill it once, used forever</li>
+            <li>✓ Logo and company name appear on every generated document letterhead</li>
+            <li>✓ CIN, GSTIN and address in document footer on each page</li>
+            <li>✓ Saved to your account — works across all devices when signed in</li>
+            <li>✓ "Powered by developersinfotech.in" credit at bottom of every PDF</li>
           </ul>
         </div>
-
       </div>
     </div>
   );
